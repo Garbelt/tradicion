@@ -1,4 +1,3 @@
-﻿
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -282,7 +281,7 @@ const TIEMPO_PREGUNTA = 30;
 // ======================================
 const questions = [
     {
-        question: "¿Y como dice? ¿A caballo regalado...?",
+        question: "¿Y como dice? A caballo regalado...",
         type: "simple",
         options: [
             { text: "no se lo maltrata.", correct: false },
@@ -293,7 +292,7 @@ const questions = [
         ]
     },
     {
-        question: "¿Y como dice? ¿Al que madruga...?",
+        question: "¿Y como dice? Al que madruga...",
         type: "simple",
         options: [
             { text: "no le amanece mas temprano.", correct: false },
@@ -304,7 +303,7 @@ const questions = [
         ]
     },
     {
-        question: "¿Y como dice? ¿Más largo que...?",
+        question: "¿Y como dice? Más largo que...",
         type: "simple",
         options: [
             { text: "un tren carguero.", correct: false },
@@ -315,7 +314,7 @@ const questions = [
         ]
     },
     {
-        question: "¿Y como dice? ¿Pan con pan...?",
+        question: "¿Y como dice? Pan con pan...",
         type: "simple",
         options: [
             { text: "nunca cae bien.", correct: false },
@@ -416,6 +415,30 @@ const questions = [
             { text: "Para mejorar la señal de Wi-Fi", correct: false },
             { text: "Para pescar", correct: false },
             { text: "Para pronosticar tormentas", correct: false }
+        ]
+    },
+    {
+        question: "Escuchá el audio... ¿A qué estilo folclórico pertenece la canción?",
+        type: "imageaudio",
+        birdAudio: "audio/07AudioImage.mp3",
+        options: [
+            { text: "Chamamé", correct: true },
+            { text: "Chacarera", correct: false },
+            { text: "Carnavalito", correct: false },
+            { text: "Zamba", correct: false },
+            { text: "Milonga", correct: false }
+        ]
+    },
+    {
+        question: "Escuchá el audio... ¿A qué estilo pertenece la canción?",
+        type: "imageaudio",
+        birdAudio: "audio/08AudioImage.mp3",
+        options: [
+            { text: "Tango", correct: true },
+            { text: "Paso doble", correct: false },
+            { text: "Chamamé", correct: false },
+            { text: "Zamba", correct: false },
+            { text: "Candombe", correct: false }
         ]
     },
     {
