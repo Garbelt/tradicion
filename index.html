@@ -1,0 +1,1025 @@
+﻿
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego de preguntas</title>
+<style>
+* { box-sizing: border-box; }
+
+html, body { min-height: 100%; }
+body {
+    margin: 0;
+    padding: 12px;
+    background: #151515;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+.pantalla { display: none; width: 100%; min-height: calc(100vh - 24px); }
+.pantalla.activa { display: block; }
+
+/* Centrado general del contenido en la pantalla */
+#panel-general.activa {
+    height: calc(100vh - 24px);
+    height: calc(100svh - 24px);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#pantalla-pregunta.activa {
+    min-height: calc(100vh - 24px);
+    min-height: calc(100svh - 24px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+#panel-general > *,
+#pantalla-pregunta > * {
+    width: 100%;
+}
+#panel-general > h1,
+#zona-ruleta,
+#pantalla-pregunta > h1,
+#pantalla-pregunta > #equipo-elegido,
+#pantalla-pregunta > .container {
+    flex: 0 0 auto;
+}
+#zona-ruleta { max-width: 1100px; }
+#pantalla-pregunta > .container { width: min(100%, 1100px); }
+button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #1976d2;
+    color: white;
+    font-size: 17px;
+    font-weight: bold;
+    cursor: pointer;
+}
+button:disabled { opacity: .5; cursor: default; }
+
+/* PANEL GENERAL */
+#equipos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin: 22px auto;
+    max-width: 1100px;
+}
+.equipo { padding: 12px 5px; border: 2px solid #555; border-radius: 10px; background: #252525; }
+.equipo h2 { font-size: 19px; margin: 5px 0 14px; }
+.equipo p { font-size: 17px; margin: 8px 0; }
+.separador { width: 100%; max-width: 1100px; margin: 20px auto; border-top: 2px solid #777; }
+#zona-ruleta { margin: 20px auto; }
+#ruleta {
+    width: 220px; height: 220px; margin: 18px auto;
+    border: 7px solid white; border-radius: 50%; position: relative;
+    overflow: hidden; transition: transform 4s cubic-bezier(.15,.7,.15,1);
+}
+#ruleta canvas { width: 100%; height: 100%; }
+#puntero {
+    width: 0; height: 0; margin: auto;
+    border-left: 16px solid transparent; border-right: 16px solid transparent;
+    border-top: 28px solid white; position: relative; z-index: 2;
+}
+#resultado { min-height: 36px; font-size: 23px; font-weight: bold; color: #4caf50; margin: 15px; }
+
+/* PANTALLA DE RESULTADO FINAL */
+#pantalla-ranking.activa {
+    min-height: calc(100vh - 24px);
+    min-height: calc(100svh - 24px);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+}
+#pantalla-ranking > * { width: 100%; max-width: 900px; }
+#pantalla-ranking h1 { color: #ffd54f; font-size: clamp(28px, 4vw, 44px); margin: 8px 0 12px; }
+#mensaje-ganador { font-size: clamp(22px, 3vw, 32px); font-weight: bold; color: #81c784; margin: 10px auto 20px; }
+#tabla-ranking { display: grid; gap: 10px; margin: 12px auto 22px; }
+.fila-ranking { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 18px; border: 2px solid #555; border-radius: 10px; background: #252525; font-size: clamp(17px, 2vw, 22px); }
+.fila-ranking.primero { border-color: #ffd54f; background: #403718; }
+.fila-ranking .puntos-ranking { font-weight: bold; color: #ffd54f; white-space: nowrap; }
+
+/* PANTALLA DE PREGUNTAS: distribución ajustada al alto disponible */
+#pantalla-pregunta { max-width: 1200px; margin: auto; }
+#pantalla-pregunta h1 { margin: 5px 0 8px; font-size: clamp(20px, 2.2vw, 29px); }
+#equipo-elegido { color: #64b5f6; font-size: 21px; margin: 6px 0 10px; }
+.container {
+    background: #1b1b1b; color: white; max-width: 1100px;
+    margin: 8px auto; padding: 12px; border: 1px solid #444;
+    border-radius: 12px; box-shadow: 0 4px 18px rgba(0,0,0,.4);
+}
+#question {
+    background: #292929; color: white;
+    font-size: clamp(18px, 2vw, 25px); font-weight: bold;
+    padding: 14px; line-height: 1.25; border-radius: 10px;
+    cursor: pointer;
+}
+#question:hover { background: #333; outline: 1px solid #64b5f6; }
+#contenido-pregunta {
+    display: grid; grid-template-columns: minmax(220px, 40%) minmax(0, 60%);
+    gap: 10px; align-items: center; margin-top: 10px;
+}
+#contenido-pregunta.sin-material { grid-template-columns: 1fr; }
+#image-cell {
+    min-width: 0; min-height: 1px; padding: 5px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px;
+}
+#questionImage {
+    display: block; width: 100%; max-height: min(34vh, 270px);
+    object-fit: contain; border-radius: 10px; cursor: pointer;
+}
+#btn-audio {
+    display: none; margin: 0; padding: 10px 14px;
+    font-size: 15px; width: min(100%, 260px);
+}
+#contenido-pregunta.sin-material #image-cell { display: none; }
+.options { list-style: none; padding: 0 5px; margin: 0; }
+.options li {
+    background: #292929; color: white; border: 1px solid #555;
+    border-radius: 9px; padding: clamp(9px, 1.2vh, 13px);
+    margin: 7px 0; font-size: clamp(14px, 1.5vw, 18px);
+    cursor: pointer; text-align: left; line-height: 1.2;
+}
+.options li:hover { background: #1976d2; border-color: #64b5f6; }
+.options li.correcta { background: #237b36; }
+.options li.incorrecta { background: #a52b2b; }
+#message { min-height: 22px; font-weight: bold; padding: 4px; }
+#panel {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+    margin-top: 10px; padding: 9px; background: #252525;
+    border: 1px solid #555; border-radius: 10px;
+}
+.dato { background: #303030; color: white; padding: 9px 12px; border-radius: 8px; font-size: 15px; }
+.icono { margin-right: 5px; color: #64b5f6; }
+#reloj { color: #64b5f6; font-size: 21px; font-weight: bold; }
+#resultado-pregunta { min-height: 27px; margin: 8px; font-size: 18px; font-weight: bold; }
+#btn-volver { margin-top: 5px; }
+
+/* Botón del lector de voz */
+#lectorButton {
+    position: fixed; right: 12px; bottom: 12px; z-index: 9999;
+    padding: 9px 13px; font-size: 13px; border: 1px solid #75baff;
+    box-shadow: 0 2px 10px rgba(0,0,0,.45);
+}
+
+/* Ajustes para pantallas bajas o angostas */
+@media (max-width: 700px) {
+    body { padding: 8px; }
+    #contenido-pregunta { grid-template-columns: minmax(0, 1fr); }
+    #image-cell { max-width: 100%; }
+    #questionImage { max-height: 25vh; }
+    #contenido-pregunta.sin-material { grid-template-columns: 1fr; }
+    .options li { padding: 9px; margin: 6px 0; }
+    #panel { padding: 7px; gap: 6px; }
+    .dato { padding: 7px 9px; font-size: 14px; }
+    #lectorButton { right: 8px; bottom: 8px; }
+}
+@media (max-height: 760px) and (min-width: 701px) {
+    body { padding-top: 6px; padding-bottom: 6px; }
+    #pantalla-pregunta h1 { margin: 2px 0 4px; }
+    #equipo-elegido { margin: 3px 0 5px; font-size: 18px; }
+    .container { margin: 5px auto; padding: 8px; }
+    #question { padding: 10px; }
+    #questionImage { max-height: 26vh; }
+    .options li { margin: 5px 0; padding: 8px; }
+    #panel { margin-top: 6px; padding: 6px; }
+    #resultado-pregunta { margin: 4px; min-height: 22px; }
+}
+</style>
+</head>
+<body>
+
+<!-- PANEL GENERAL -->
+<section id="panel-general" class="pantalla activa">
+    <h1>PANEL GENERAL</h1>
+    <div id="equipos"></div>
+    <div class="separador"></div>
+    <div id="zona-ruleta">
+        <h2>RULETA DE EQUIPOS</h2>
+        <div id="puntero"></div>
+        <div id="ruleta"><canvas id="canvas-ruleta" width="500" height="500"></canvas></div>
+        <button id="btn-sortear" onclick="sortearEquipo()">SORTEAR EQUIPO</button>
+        <div id="resultado"></div>
+    </div>
+</section>
+
+<!-- PANTALLA DE PREGUNTAS -->
+<section id="pantalla-pregunta" class="pantalla">
+    <h1>PANTALLA DE PREGUNTAS</h1>
+    <h2 id="equipo-elegido"></h2>
+    <div class="container">
+        <div id="question" title="Hacé clic para volver a escuchar la pregunta"></div>
+        <div id="contenido-pregunta">
+            <div id="image-cell">
+                <img id="questionImage" src="" alt="Imagen de la pregunta" style="display:none;">
+                <button id="btn-audio" onclick="reproducirAudio()">🔊 ESCUCHAR AUDIO</button>
+            </div>
+            <div>
+                <ul id="options" class="options"></ul>
+                <div id="message"></div>
+            </div>
+        </div>
+        <div id="panel">
+            <div class="dato"><span class="icono">👥</span><span id="nombre-equipo">Equipo 1</span></div>
+            <div class="dato"><span class="icono">🏆</span><span id="puntaje">0</span> puntos</div>
+            <div class="dato"><span class="icono">❤️</span><span id="intentos">5</span> intentos</div>
+            <div class="dato"><span class="icono">⏱️</span><span id="reloj">30</span> segundos</div>
+        </div>
+        <div id="resultado-pregunta"></div>
+        <button id="btn-volver" onclick="volverAlPanel()" disabled>VOLVER AL PANEL GENERAL</button>
+    </div>
+</section>
+
+<!-- PANTALLA DE RANKING FINAL -->
+<section id="pantalla-ranking" class="pantalla">
+    <h1>🏆 ¡FIN DEL JUEGO! 🏆</h1>
+    <div id="mensaje-ganador"></div>
+    <div id="tabla-ranking"></div>
+    <button id="btn-nuevo-juego" onclick="reiniciarJuego()">JUGAR DE NUEVO</button>
+</section>
+
+<script src="lector.js"></script>
+<script>
+// Efectos de sonido del juego
+const sonidoRuleta = new Audio("sounds/ruleta.mp3");
+const sonidoTictac = new Audio("sounds/tictac.mp3");
+const sonidoCorrecto = new Audio("sounds/correcto.mp3");
+const sonidoError = new Audio("sounds/error.mp3");
+sonidoRuleta.preload = "auto";
+sonidoTictac.preload = "auto";
+sonidoCorrecto.preload = "auto";
+sonidoError.preload = "auto";
+
+function reproducirEfecto(audio, reiniciar = true) {
+    if (!audio) return;
+    if (reiniciar) audio.currentTime = 0;
+    audio.play().catch(error => {
+        console.warn("No se pudo reproducir el efecto de sonido:", error);
+    });
+}
+
+function detenerEfecto(audio) {
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+}
+</script>
+<script>
+// ======================================
+// CONFIGURACIÓN
+// ======================================
+const CANTIDAD_EQUIPOS = 5;
+const TIEMPO_PREGUNTA = 30;
+
+// ======================================
+// BANCO DE PREGUNTAS
+// ======================================
+const questions = [
+    {
+        question: "¿Y como dice? ¿A caballo regalado...?",
+        type: "simple",
+        options: [
+            { text: "no se lo maltrata.", correct: false },
+            { text: "no se le miran los dientes.", correct: true },
+            { text: "anda el que no tiene plata.", correct: false },
+            { text: "es mejor desconfiar.", correct: false },
+            { text: "no se le mira la raza.", correct: false }
+        ]
+    },
+    {
+        question: "¿Y como dice? ¿Al que madruga...?",
+        type: "simple",
+        options: [
+            { text: "no le amanece mas temprano.", correct: false },
+            { text: "Dios lo ayuda.", correct: true },
+            { text: "no se le pasa el sueño.", correct: false },
+            { text: "se le alargan los día.", correct: false },
+            { text: "Viqui no le pone media falta.", correct: false }
+        ]
+    },
+    {
+        question: "¿Y como dice? ¿Más largo que...?",
+        type: "simple",
+        options: [
+            { text: "un tren carguero.", correct: false },
+            { text: "esperanza de pobre.", correct: true },
+            { text: "clase de música del lunes.", correct: false },
+            { text: "los días de verano.", correct: false },
+            { text: "un viaje a la luna.", correct: false }
+        ]
+    },
+    {
+        question: "¿Y como dice? ¿Pan con pan...?",
+        type: "simple",
+        options: [
+            { text: "nunca cae bien.", correct: false },
+            { text: "comida de zonzos.", correct: true },
+            { text: "y te hacés un sandwich.", correct: false },
+            { text: "a nadie le gusta.", correct: false },
+            { text: "no se le desea a nadie.", correct: false }
+        ]
+    },
+    {
+        question: "¿Qué se celebra en Argentina el 10 de noviembre?",
+        type: "simple",
+        options: [
+            { text: "El Día de la Independencia", correct: false },
+            { text: "El Día de la Tradición", correct: true },
+            { text: "El Día del Folclore", correct: false },
+            { text: "El Día del Gaucho", correct: false },
+            { text: "El Día de la Soberanía", correct: false }
+        ]
+    },
+    {
+        question: "¿Por qué se adoptó el 10 de noviembre para celebrar nuestras tradiciones?",
+        type: "simple",
+        options: [
+            { text: "Porque ese día se publicó el Martín Fierro por primera vez", correct: false },
+            { text: "Porque ese día murió José Hernández, autor del Martín Fierro", correct: false },
+            { text: "Porque ese día murió Martín Fierro", correct: false },
+            { text: "Porque ese día salió la ley que decretaba la importancia de las tradiciones", correct: false },
+            { text: "Porque ese día nació José Hernández, autor del Martín Fierro", correct: true }
+        ]
+    },
+    {
+        question: "¿Cuándo se publicó por primera vez el Martín Fierro?",
+        type: "simple",
+        options: [
+            { text: "Entre 1800 y 1840", correct: false },
+            { text: "Entre 1840 y 1880", correct: true },
+            { text: "Entre 1880 y 1920", correct: false },
+            { text: "Entre 1960 y 2000", correct: false },
+            { text: "Entre 1920 y 1960", correct: false }
+        ]
+    },
+    {
+        question: "¿Qué elemento tradicional que aparece en la imagen?",
+        type: "image",
+        image: "image/imagen01.jpg",
+        options: [
+            { text: "Una taba", correct: true },
+            { text: "Un rebenque", correct: false },
+            { text: "Un charango", correct: false },
+            { text: "Un talón de Aquiles", correct: false },
+            { text: "Un chiripá", correct: false }
+        ]
+    },
+    {
+        question: "¿Cómo se llama el elemento tradicional de la imagen?",
+        type: "image",
+        image: "image/imagen02.jpg",
+        options: [
+            { text: "Herradura", correct: true },
+            { text: "Suertera", correct: false },
+            { text: "Rastra", correct: false },
+            { text: "Covacha", correct: false },
+            { text: "Humita", correct: false }
+        ]
+    },
+    {
+        question: "¿Cómo se llama la comida que se ve en la imagen?",
+        type: "image",
+        image: "image/imagen03.jpg",
+        options: [
+            { text: "Locro", correct: false },
+            { text: "Envueltos", correct: false },
+            { text: "Croquetas", correct: false },
+            { text: "Mazamorra", correct: false },
+            { text: "Tamales", correct: true }
+        ]
+    },
+    {
+        question: "¿Cuál es el nombre del instrumento que se ve en la imagen?",
+        type: "image",
+        image: "image/imagen04.jpg",
+        options: [
+            { text: "Arpa", correct: false },
+            { text: "Charango", correct: false },
+            { text: "Quena", correct: false },
+            { text: "Cañitas", correct: false },
+            { text: "Siku", correct: true }
+        ]
+    },
+    {
+        question: "¿Para qué se utiliza el elemento que se ve en la imagen?",
+        type: "image",
+        image: "image/imagen07.jpg",
+        options: [
+            { text: "Para hacer un deporte", correct: true },
+            { text: "Para cazar", correct: false },
+            { text: "Para mejorar la señal de Wi-Fi", correct: false },
+            { text: "Para pescar", correct: false },
+            { text: "Para pronosticar tormentas", correct: false }
+        ]
+    },
+    {
+        question: "Escuchá el audio... ¿Cómo se llama esa canción?",
+        type: "imageaudio",
+        birdAudio: "audio/01AudioImage.mp3",
+        options: [
+            { text: "Chacarera del rancho", correct: true },
+            { text: "Yo vendo unos ojos negros", correct: false },
+            { text: "El escondido", correct: false },
+            { text: "Gato correntino", correct: false },
+            { text: "Zamba de mi esperanza", correct: false }
+        ]
+    },
+    {
+        question: "Escuchá el audio... ¿Cómo se llama esa canción?",
+        type: "imageaudio",
+        birdAudio: "audio/05AudioImage.mp3",
+        options: [
+            { text: "Kilómetro 11", correct: true },
+            { text: "Agitando pañuelos", correct: false },
+            { text: "Zamba alegre", correct: false },
+            { text: "Chacarera de un triste", correct: false },
+            { text: "Santafesino de veras", correct: false }
+        ]
+    },
+    {
+        question: "Escuchá el audio... ¿Cómo se llama la canción?",
+        type: "imageaudio",
+        birdAudio: "audio/03AudioImage.mp3",
+        options: [
+            { text: "Luna tucumana", correct: false },
+            { text: "Zamba de mi esperanza", correct: true },
+            { text: "Chacarera del rancho", correct: false },
+            { text: "La Telesita", correct: false },
+            { text: "El humahuaqueño", correct: false }
+        ]
+    },
+    {
+        question: "Escuchá el audio... ¿Cuál es el nombre de la canción?",
+        type: "imageaudio",
+        birdAudio: "audio/06AudioImage.mp3",
+        options: [
+            { text: "El humahuaqueño", correct: true },
+            { text: "El quebradeño", correct: false },
+            { text: "El toro", correct: false },
+            { text: "Lunita tucumana", correct: false }
+        ]
+    },
+    {
+        question: "Escuchá el audio... ¿Cómo se llama el instrumento que se oye?",
+        type: "imageaudio",
+        birdAudio: "audio/02AudioImage.mp3",
+        options: [
+            { text: "Charango", correct: true },
+            { text: "Arpa", correct: false },
+            { text: "Ukelele", correct: false },
+            { text: "Banjo", correct: false },
+            { text: "Guitarra", correct: false }
+        ]
+    },
+    {
+        question: "Escuchá el audio... ¿Cuál es el nombre del instrumento que se oye?",
+        type: "imageaudio",
+        birdAudio: "audio/04AudioImage.mp3",
+        options: [
+            { text: "Acordeón", correct: true },
+            { text: "Armónica", correct: false },
+            { text: "Violín", correct: false },
+            { text: "Melódica", correct: false },
+            { text: "Órgano", correct: false }
+        ]
+    },
+    {
+        question: "¿A qué canción pertenecen los versos que hay en la imagen?",
+        type: "image",
+        image: "image/imagen05.jpg",
+        options: [
+            { text: "Luna Santiagueña", correct: false },
+            { text: "Volveré siempre a San Juan", correct: false },
+            { text: "Si llega a ser Tucumana", correct: false },
+            { text: "Luna Tucumana", correct: true }
+        ]
+    },
+    {
+        question: "¿A qué canción pertenecen los versos que se leen en la imagen?",
+        type: "image",
+        image: "image/imagen06.jpg",
+        options: [
+            { text: "El escondido", correct: true },
+            { text: "Chacarera del violín", correct: false },
+            { text: "El pala pala", correct: false },
+            { text: "Pastor de nubes", correct: false }
+        ]
+    },
+];
+
+// ======================================
+// DATOS DE LOS EQUIPOS
+// ======================================
+let equipos = [];
+let equipoSeleccionado = null;
+let ultimoEquipoSorteado = null;
+let historialSorteos = [];
+let girando = false;
+let preguntaActual = null;
+let preguntasPendientes = [];
+let preguntaRespondida = false;
+let rankingEnProceso = false;
+let tiempoRestante = TIEMPO_PREGUNTA;
+let intervalo = null;
+let audioPregunta = null;
+let temporizadorImagen = null;
+
+function inicializarEquipos() {
+    if (!Number.isInteger(CANTIDAD_EQUIPOS) || CANTIDAD_EQUIPOS < 2 || CANTIDAD_EQUIPOS > 8) {
+        throw new Error("La cantidad de equipos debe estar entre 2 y 8.");
+    }
+    equipos = [];
+    for (let i = 1; i <= CANTIDAD_EQUIPOS; i++) {
+        equipos.push({ nombre: "Equipo " + i, puntos: 0, intentos: 5 });
+    }
+    preguntasPendientes = mezclarPreguntas(questions);
+    mostrarEquipos();
+    dibujarRuleta();
+}
+
+function mostrarEquipos() {
+    const contenedor = document.getElementById("equipos");
+    contenedor.innerHTML = "";
+    equipos.forEach(equipo => {
+        const tarjeta = document.createElement("div");
+        tarjeta.className = "equipo";
+        tarjeta.innerHTML = `<h2>${equipo.nombre}</h2><p>${equipo.puntos} puntos</p><p>${equipo.intentos} intentos</p>`;
+        contenedor.appendChild(tarjeta);
+    });
+}
+
+// ======================================
+// DIBUJAR RULETA
+// ======================================
+function dibujarRuleta() {
+    const canvas = document.getElementById("canvas-ruleta");
+    const ctx = canvas.getContext("2d");
+    const centro = 250;
+    const radio = 245;
+    const colores = ["#e53935", "#1976d2", "#43a047", "#fbc02d", "#8e24aa", "#00acc1", "#fb8c00", "#6d4c41"];
+    const angulo = (2 * Math.PI) / equipos.length;
+    ctx.clearRect(0, 0, 500, 500);
+    equipos.forEach((equipo, i) => {
+        const inicio = -Math.PI / 2 + i * angulo;
+        const fin = inicio + angulo;
+        ctx.beginPath();
+        ctx.moveTo(centro, centro);
+        ctx.arc(centro, centro, radio, inicio, fin);
+        ctx.closePath();
+        ctx.fillStyle = colores[i];
+        ctx.fill();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        const medio = inicio + angulo / 2;
+        const x = centro + Math.cos(medio) * radio * 0.65;
+        const y = centro + Math.sin(medio) * radio * 0.65;
+        ctx.fillStyle = "white";
+        ctx.font = "bold 24px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(equipo.nombre, x, y);
+    });
+}
+
+// ======================================
+// SORTEAR EQUIPO
+// ======================================
+function sortearEquipo() {
+    if (girando) return;
+    if (equipos.every(e => e.intentos <= 0)) {
+        mostrarRankingFinal();
+        return;
+    }
+    girando = true;
+    const boton = document.getElementById("btn-sortear");
+    const ruleta = document.getElementById("ruleta");
+    const resultado = document.getElementById("resultado");
+    boton.disabled = true;
+    resultado.textContent = "";
+    reproducirEfecto(sonidoRuleta);
+// Se mantienen habilitados únicamente los equipos con intentos disponibles.
+const equiposDisponibles = equipos.filter(e => e.intentos > 0);
+
+// La ventana de análisis equivale al doble de la cantidad de equipos.
+const ventanaSorteos = CANTIDAD_EQUIPOS * 2;
+
+// Analizamos los sorteos anteriores al actual.
+const ultimosSorteos = historialSorteos.slice(-(ventanaSorteos - 1));
+
+// Contamos cuántas veces salió cada equipo.
+function cantidadDeSorteos(equipo) {
+    return ultimosSorteos.filter(e => e === equipo).length;
+}
+
+// Cada equipo puede aparecer como máximo 2 veces en la ventana.
+let candidatos = equiposDisponibles.filter(
+    equipo => cantidadDeSorteos(equipo) < 2
+);
+
+// Si quedan menos de cinco equipos disponibles,
+// puede ser matemáticamente imposible cumplir el límite.
+// En ese caso priorizamos los equipos que menos salieron.
+if (candidatos.length === 0) {
+    const minimo = Math.min(...equiposDisponibles.map(cantidadDeSorteos));
+
+    candidatos = equiposDisponibles.filter(
+        equipo => cantidadDeSorteos(equipo) === minimo
+    );
+}
+
+// Evitamos repetir el último equipo cuando hay alternativas.
+if (candidatos.length > 1 && ultimoEquipoSorteado) {
+    candidatos = candidatos.filter(
+        equipo => equipo !== ultimoEquipoSorteado
+    );
+}
+
+// Sorteo aleatorio entre los candidatos habilitados.
+const indiceDisponible = Math.floor(Math.random() * candidatos.length);
+equipoSeleccionado = candidatos[indiceDisponible];
+
+// Actualizamos el historial.
+historialSorteos.push(equipoSeleccionado);
+
+if (historialSorteos.length > 15) {
+    historialSorteos.shift();
+}
+
+ultimoEquipoSorteado = equipoSeleccionado;
+
+    const indice = equipos.indexOf(equipoSeleccionado);
+    const anguloPorEquipo = 360 / equipos.length;
+    const anguloCentro = (indice + 0.5) * anguloPorEquipo;
+    const giroFinal = 360 * 6 - anguloCentro;
+    ruleta.style.transition = "none";
+    ruleta.style.transform = "rotate(0deg)";
+    void ruleta.offsetWidth;
+    ruleta.style.transition = "transform 4s cubic-bezier(.15,.7,.15,1)";
+    ruleta.style.transform = `rotate(${giroFinal}deg)`;
+    setTimeout(() => {
+        detenerEfecto(sonidoRuleta);
+        resultado.textContent = "¡Seleccionado: " + equipoSeleccionado.nombre + "!";
+        girando = false;
+
+        // El nombre ya contiene la palabra "Equipo"; solo agregamos el número.
+        const numeroEquipo = equipoSeleccionado.nombre.replace(/^Equipo\s*/i, "");
+        const anuncio = "Juega el equipo " + numeroEquipo;
+        let anuncioContinuado = false;
+        let respaldoAnuncio = null;
+        const continuarConPregunta = () => {
+            if (anuncioContinuado) return;
+            anuncioContinuado = true;
+            clearTimeout(respaldoAnuncio);
+            // Pequeña pausa después del anuncio para separar el sorteo de la pregunta.
+            setTimeout(mostrarPantallaPregunta, 1300);
+        };
+
+        if (typeof hablar === "function") {
+            hablar(anuncio, false, continuarConPregunta);
+            // Respaldo por si el navegador no informa el final de la voz.
+            respaldoAnuncio = setTimeout(continuarConPregunta, 5000);
+        } else {
+            setTimeout(continuarConPregunta, 1300);
+        }
+    }, 4100);
+}
+
+// ======================================
+// SELECCIÓN DE PREGUNTA
+// ======================================
+function mezclarPreguntas(array) {
+    const mezcladas = [...array];
+    for (let i = mezcladas.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [mezcladas[i], mezcladas[j]] = [mezcladas[j], mezcladas[i]];
+    }
+    return mezcladas;
+}
+
+function seleccionarPregunta() {
+    if (preguntasPendientes.length === 0) {
+        document.getElementById("resultado").textContent = "¡Se respondieron todas las preguntas correctamente!";
+        document.getElementById("btn-sortear").disabled = true;
+        return false;
+    }
+    preguntaActual = preguntasPendientes.shift();
+    return true;
+}
+
+function devolverPreguntaAlFinal() {
+    if (preguntaActual) preguntasPendientes.push(preguntaActual);
+}
+
+// ======================================
+// MOSTRAR PANTALLA DE PREGUNTA
+// ======================================
+function mostrarPantallaPregunta() {
+    if (!seleccionarPregunta()) return;
+    document.getElementById("panel-general").classList.remove("activa");
+    document.getElementById("pantalla-pregunta").classList.add("activa");
+    reproducirEfecto(sonidoTictac);
+    document.getElementById("equipo-elegido").textContent = equipoSeleccionado.nombre;
+    document.getElementById("nombre-equipo").textContent = equipoSeleccionado.nombre;
+    document.getElementById("resultado-pregunta").textContent = "";
+    document.getElementById("message").textContent = "";
+    document.getElementById("btn-volver").disabled = true;
+    cargarPregunta(preguntaActual);
+    actualizarDatosEquipo();
+    preguntaRespondida = false;
+    iniciarCronometro();
+}
+
+// ======================================
+// CARGAR PREGUNTA SEGÚN SU TIPO
+// ======================================
+function cargarPregunta(pregunta) {
+    const imagen = document.getElementById("questionImage");
+    const botonAudio = document.getElementById("btn-audio");
+    const opciones = document.getElementById("options");
+    const contenido = document.getElementById("contenido-pregunta");
+    document.getElementById("question").textContent = pregunta.question || "";
+    imagen.style.display = "none";
+    imagen.src = "";
+    botonAudio.style.display = "none";
+    opciones.innerHTML = "";
+
+    const tieneImagen = Boolean(pregunta.image);
+    const tieneAudio = pregunta.type === "imageaudio" && Boolean(pregunta.birdAudio);
+    contenido.classList.toggle("sin-material", !tieneImagen && !tieneAudio);
+
+    if (tieneImagen) {
+        imagen.src = pregunta.image;
+        imagen.style.display = "block";
+    }
+    if (tieneAudio) botonAudio.style.display = "inline-block";
+
+    imagen.dataset.secondImage = pregunta.type === "imageChange" ? (pregunta.secondImage || "") : "";
+    imagen.dataset.originalImage = pregunta.image || "";
+    imagen.onclick = null;
+    if (pregunta.type === "imageChange" && pregunta.secondImage) {
+        imagen.onclick = cambiarImagenTemporal;
+    }
+
+    if (!Array.isArray(pregunta.options) || pregunta.options.length === 0) {
+        opciones.innerHTML = "<li>Esta pregunta todavía no tiene respuestas cargadas.</li>";
+        return;
+    }
+
+    const respuestas = [...pregunta.options];
+    for (let i = respuestas.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [respuestas[i], respuestas[j]] = [respuestas[j], respuestas[i]];
+    }
+    respuestas.forEach(respuesta => {
+        const li = document.createElement("li");
+        li.textContent = respuesta.text || "";
+        li.dataset.correcta = respuesta.correct ? "true" : "false";
+        li.dataset.audio = respuesta.audio || "";
+        li.addEventListener("click", manejarRespuesta);
+        opciones.appendChild(li);
+    });
+
+    configurarLecturaOpciones();
+    leerPregunta();
+}
+
+// ======================================
+// REPRODUCIR AUDIO DE LA PREGUNTA
+// ======================================
+function reproducirAudio() {
+    if (!preguntaActual || !preguntaActual.birdAudio) return;
+    if (audioPregunta) {
+        audioPregunta.pause();
+        audioPregunta.currentTime = 0;
+    }
+    audioPregunta = new Audio(preguntaActual.birdAudio);
+    audioPregunta.play().catch(error => console.error("No se pudo reproducir el audio:", error));
+}
+
+// ======================================
+// CAMBIAR IMAGEN TEMPORALMENTE
+// ======================================
+function cambiarImagenTemporal() {
+    const imagen = document.getElementById("questionImage");
+    const segunda = imagen.dataset.secondImage;
+    const original = imagen.dataset.originalImage;
+    if (!segunda || !original) return;
+    clearTimeout(temporizadorImagen);
+    imagen.src = segunda;
+    temporizadorImagen = setTimeout(() => { imagen.src = original; }, 3000);
+}
+
+// ======================================
+// ACTUALIZAR DATOS DEL EQUIPO
+// ======================================
+function actualizarDatosEquipo() {
+    document.getElementById("puntaje").textContent = equipoSeleccionado.puntos;
+    document.getElementById("intentos").textContent = equipoSeleccionado.intentos;
+}
+
+// ======================================
+// CRONÓMETRO
+// ======================================
+function iniciarCronometro() {
+    clearInterval(intervalo);
+    tiempoRestante = TIEMPO_PREGUNTA;
+    document.getElementById("reloj").textContent = tiempoRestante;
+    intervalo = setInterval(() => {
+        tiempoRestante--;
+        document.getElementById("reloj").textContent = tiempoRestante;
+        if (tiempoRestante <= 0) {
+            clearInterval(intervalo);
+            detenerEfecto(sonidoTictac);
+            devolverPreguntaAlFinal();
+            document.getElementById("resultado-pregunta").textContent = "¡Se terminó el tiempo!";
+            equipoSeleccionado.intentos--;
+            actualizarDatosEquipo();
+            mostrarEquipos();
+            bloquearRespuestas();
+            if (equipos.every(e => e.intentos <= 0)) {
+                mostrarRankingFinal();
+                return;
+            }
+            document.getElementById("btn-volver").disabled = false;
+            document.getElementById("btn-volver").textContent = "VOLVER AL PANEL GENERAL";
+        }
+    }, 1000);
+}
+
+// ======================================
+// RESPUESTAS
+// ======================================
+function manejarRespuesta() {
+    if (preguntaRespondida) return;
+    preguntaRespondida = true;
+    clearInterval(intervalo);
+    detenerEfecto(sonidoTictac);
+    const esCorrecta = this.dataset.correcta === "true";
+    if (esCorrecta) {
+        this.classList.add("correcta");
+        reproducirEfecto(sonidoCorrecto);
+        const puntosPorRapidez = Math.max(0, tiempoRestante);
+        const puntosGanados = 50 + puntosPorRapidez;
+        equipoSeleccionado.puntos += puntosGanados;
+        document.getElementById("resultado-pregunta").textContent =
+            "¡CORRECTO! +" + puntosGanados + " puntos (50 + " + puntosPorRapidez + " por rapidez)";
+    } else {
+        this.classList.add("incorrecta");
+        reproducirEfecto(sonidoError);
+        devolverPreguntaAlFinal();
+        equipoSeleccionado.intentos--;
+        document.getElementById("resultado-pregunta").textContent = "Respuesta incorrecta";
+        document.querySelectorAll("#options li").forEach(opcion => {
+            if (opcion.dataset.correcta === "true") opcion.classList.add("correcta");
+        });
+    }
+    actualizarDatosEquipo();
+    mostrarEquipos();
+    bloquearRespuestas();
+
+    // Si ya no quedan preguntas pendientes, mostrar el ranking sin pedir otro clic.
+    // También finalizar si todos los equipos agotaron sus intentos.
+    if (preguntasPendientes.length === 0 || equipos.every(e => e.intentos <= 0)) {
+        mostrarRankingFinal();
+        return;
+    }
+
+    document.getElementById("btn-volver").disabled = false;
+    document.getElementById("btn-volver").textContent = "VOLVER AL PANEL GENERAL";
+}
+
+// ======================================
+// BLOQUEAR RESPUESTAS
+// ======================================
+function bloquearRespuestas() {
+    preguntaRespondida = true;
+    document.querySelectorAll("#options li").forEach(opcion => {
+        opcion.style.pointerEvents = "none";
+    });
+    if (typeof detenerLectura === "function") detenerLectura();
+}
+
+// ======================================
+// VOLVER AL PANEL GENERAL
+// ======================================
+function volverAlPanel() {
+    if (!preguntaRespondida) return;
+    if (preguntasPendientes.length === 0) {
+        mostrarRankingFinal();
+        return;
+    }
+    clearInterval(intervalo);
+    detenerEfecto(sonidoTictac);
+    detenerEfecto(sonidoRuleta);
+    clearTimeout(temporizadorImagen);
+    if (typeof detenerLectura === "function") detenerLectura();
+    if (audioPregunta) {
+        audioPregunta.pause();
+        audioPregunta.currentTime = 0;
+        audioPregunta = null;
+    }
+    document.getElementById("pantalla-pregunta").classList.remove("activa");
+    document.getElementById("panel-general").classList.add("activa");
+    document.getElementById("btn-sortear").disabled = false;
+    document.getElementById("resultado").textContent = "";
+    document.getElementById("resultado-pregunta").textContent = "";
+    document.getElementById("message").textContent = "";
+    document.getElementById("questionImage").style.display = "none";
+    document.getElementById("btn-audio").style.display = "none";
+    document.getElementById("options").innerHTML = "";
+    document.getElementById("contenido-pregunta").classList.remove("sin-material");
+    document.getElementById("btn-volver").disabled = true;
+    document.getElementById("btn-volver").textContent = "VOLVER AL PANEL GENERAL";
+    preguntaRespondida = false;
+}
+
+// ======================================
+// RANKING FINAL Y NUEVA PARTIDA
+// ======================================
+function mostrarRankingFinal() {
+    if (rankingEnProceso) return;
+    rankingEnProceso = true;
+    clearInterval(intervalo);
+    detenerEfecto(sonidoTictac);
+    detenerEfecto(sonidoRuleta);
+    if (typeof detenerLectura === "function") detenerLectura();
+
+    const ordenados = [...equipos].sort((a, b) => b.puntos - a.puntos);
+    const maximo = ordenados[0]?.puntos ?? 0;
+    const ganadores = ordenados.filter(e => e.puntos === maximo);
+    const mensaje = document.getElementById("mensaje-ganador");
+    const tabla = document.getElementById("tabla-ranking");
+    tabla.innerHTML = "";
+
+    let anuncioGanador;
+    if (ganadores.length === 1) {
+        mensaje.textContent = "¡GANÓ " + ganadores[0].nombre.toUpperCase() + "!";
+        anuncioGanador = "¡Ganó el equipo " + ganadores[0].nombre.replace(/^Equipo\s*/i, "") + "!";
+    } else {
+        const nombres = ganadores.map(e => e.nombre.replace(/^Equipo\s*/i, ""));
+        const nombresParaLeer = nombres.length === 2
+            ? nombres.join(" y ")
+            : nombres.slice(0, -1).join(", ") + " y " + nombres[nombres.length - 1];
+        mensaje.textContent = "¡GANARON LOS EQUIPOS " + nombres.join(" Y ").toUpperCase() + "!";
+        anuncioGanador = "¡Ganaron los equipos " + nombresParaLeer + "!";
+    }
+
+    ordenados.forEach((equipo, indice) => {
+        const fila = document.createElement("div");
+        fila.className = "fila-ranking" + (equipo.puntos === maximo ? " primero" : "");
+        const posicion = document.createElement("span");
+        posicion.textContent = (indice + 1) + "°  " + equipo.nombre;
+        const puntos = document.createElement("span");
+        puntos.className = "puntos-ranking";
+        puntos.textContent = equipo.puntos + " puntos";
+        fila.append(posicion, puntos);
+        tabla.appendChild(fila);
+    });
+
+    // Pequeña pausa para dejar terminar el momento de la última respuesta.
+    setTimeout(() => {
+        document.getElementById("panel-general").classList.remove("activa");
+        document.getElementById("pantalla-pregunta").classList.remove("activa");
+        document.getElementById("pantalla-ranking").classList.add("activa");
+
+        // Una vez visible el ranking, esperar un segundo antes del anuncio.
+        setTimeout(() => {
+            hablar("Fin del juego", false, () => {
+                setTimeout(() => hablar(anuncioGanador), 500);
+            });
+        }, 1000);
+    }, 700);
+}
+
+function reiniciarJuego() {
+    rankingEnProceso = false;
+    ultimoEquipoSorteado = null;
+    historialSorteos = [];
+    equipos.forEach(equipo => { equipo.puntos = 0; equipo.intentos = 5; });
+    preguntasPendientes = mezclarPreguntas(questions);
+    preguntaActual = null;
+    equipoSeleccionado = null;
+    preguntaRespondida = false;
+    document.getElementById("pantalla-ranking").classList.remove("activa");
+    document.getElementById("panel-general").classList.add("activa");
+    document.getElementById("btn-sortear").disabled = false;
+    document.getElementById("resultado").textContent = "";
+    document.getElementById("btn-volver").textContent = "VOLVER AL PANEL GENERAL";
+    mostrarEquipos();
+    dibujarRuleta();
+}
+
+// ======================================
+// INICIAR
+// ======================================
+inicializarEquipos();
+</script>
+</body>
+</html>
